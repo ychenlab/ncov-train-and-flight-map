@@ -21,11 +21,12 @@
 			margin: 0;
 			font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial, sans-serif;
 		}
+		p {
+  		font-size: 12px;
+		}
 		#info{
-
 		width: 20%;
-		padding: 1%;
-		overflow: auto;
+		margin: 1%;
 	}
 	  #map{
 		position: fixed;
@@ -53,7 +54,9 @@
 <body>
 
 <div id="info">
-		<h2>火车、飞机疫情班次</h2>
+		<h2>铁路车次疫情</h2>
+		<p>数据来源：掌上高铁-铁路车次疫情实时查询；人民日报微博</p>
+		<p>更新日期：2020年2月9日</p>
 		<h1 id="currentDate"></h1>
 		<p>当日新增</p>
 		<ul id="displayed-list"></ul>
@@ -68,10 +71,10 @@
 <script>
 
 // color pallet
-	var color1 ="#ff2e66";
-	var color2 = "#0059B2";
-	var color1Flight ="#a1002b";
-	var color2Flight = "#002040";
+	var color1 ="#980000";
+	var color2 = "#ff6655";
+//	var color1Flight ="#a1002b";
+//	var color2Flight = "#002040";
 
 
 	function getColor(d) {
@@ -183,9 +186,9 @@
 		// edge style
 		style:function style(feature) {
 			return {
-				opacity: 0.4,
+				opacity: 0.5,
 				color: getColor(feature.properties.transit),
-				weight:1.2,
+				weight:1.5,
 
 			};
 		},
@@ -256,7 +259,7 @@ function updateList(timeline){
 			style:function style(feature) {
 				return {
 					opacity: 1,
-					weight: 2.5,
+					weight: 3,
 					color: getColorAnimation(feature.properties.transit),
 						};
 			},
