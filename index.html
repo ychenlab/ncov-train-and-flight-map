@@ -70,6 +70,7 @@
 		<ul id="displayed-list"></ul>
 </div>
 
+
 <div id='map'>
 </div>
 
@@ -102,6 +103,16 @@
 		 minZoom: 1,
 		attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 	}).addTo(map);
+
+var polygon = L.polygon([
+	    [-90, -360],
+	    [-90, 360],
+	    [90, 360],
+			[90, -360]
+	],{
+			fillColor: 'white',
+			fillOpacity: 0.5
+			}).addTo(map);
 
 
 /*	L.esri.Vector.basemap('StreetsNight',{
