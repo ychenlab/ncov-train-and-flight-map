@@ -14,6 +14,14 @@
     <script src="src/leaflet.timeline.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
 
+		<!-- Load Mapbox GL -->
+		<link rel="stylesheet" href="https://unpkg.com/mapbox-gl/dist/mapbox-gl.css"/>
+		<script src="https://unpkg.com/mapbox-gl/dist/mapbox-gl.js"></script>
+
+		<!-- Esri Leaflet and Esri Leaflet Vector -->
+		<script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+		<script src="https://unpkg.com/esri-leaflet-vector/dist/esri-leaflet-vector.js"></script>
+
 	<style>
 		html, body {
 			height: 100%;
@@ -22,6 +30,7 @@
 		}
 		p {
   		font-size: 12px;
+			margin:0 auto;
 		}
 		#info{
 		width: 20%;
@@ -90,9 +99,14 @@
 
 	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 15,
+		 minZoom: 1,
 		attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 	}).addTo(map);
 
+
+/*	L.esri.Vector.basemap('StreetsNight',{
+			maxZoom: 14, minZoom: 5}).addTo(map);
+*/
 
 // nodes events
 	// highlight for nodes
