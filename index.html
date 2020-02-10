@@ -81,7 +81,7 @@
 
 // color pallet
 	var color1 ="#980000";
-	var color2 = "#ff6655";
+	var color2 = "#004eb5";
 //	var color1Flight ="#a1002b";
 //	var color2Flight = "#002040";
 
@@ -104,7 +104,7 @@
 		attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 	}).addTo(map);
 
-var polygon = L.polygon([
+/*var polygon = L.polygon([
 	    [-90, -360],
 	    [-90, 360],
 	    [90, 360],
@@ -113,6 +113,7 @@ var polygon = L.polygon([
 			fillColor: 'white',
 			fillOpacity: 0.5
 			}).addTo(map);
+*/
 
 
 /*	L.esri.Vector.basemap('StreetsNight',{
@@ -212,7 +213,7 @@ var polygon = L.polygon([
 			return {
 				opacity: 0.5,
 				color: getColor(feature.properties.transit),
-				weight:1.5,
+				weight:3,
 
 			};
 		},
@@ -282,8 +283,8 @@ function updateList(timeline){
 			getInterval: getInterval,
 			style:function style(feature) {
 				return {
-					opacity: 1,
-					weight: 3,
+					opacity: 0.9,
+					weight: 5,
 					color: getColorAnimation(feature.properties.transit),
 						};
 			},
