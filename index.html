@@ -13,6 +13,7 @@
     <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
     <script src="src/leaflet.timeline.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
+		<script src="src/L.Polyline.SnakeAnim.js"></script>
 
 		<!-- Load Mapbox GL -->
 		<link rel="stylesheet" href="https://unpkg.com/mapbox-gl/dist/mapbox-gl.css"/>
@@ -81,10 +82,13 @@
 <script>
 
 // color pallet
-	var color1 ="#ff0051";
-	var color2 = "#004eb5";
+	var color1 ="#ffb300";   //highlight
+	var color2 = "#f582ff";  //base
+	var color3 = "#ff0049";  //new
 //	var color1Flight ="#a1002b";
 //	var color2Flight = "#002040";
+
+  var timeScale =2;
 
 
 	function getColor(d) {
@@ -128,13 +132,13 @@
 
 		layer.setStyle({
 			weight: 10,
-			fillColor: getColor(layer.feature.properties.transit),
+			fillColor: color1,
 			color:color1,
 			fillOpacity: 0.9
 		});
 
 		if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-			layer.bringToFront();
+			nodes.bringToFront();
 		}
 
 		info.update(layer.feature.properties);
@@ -152,10 +156,10 @@
 			mouseover: highlightFeature,
 			mouseout: resetHighlight
 		});
-
 		var popupContent = "<p>" +
 				feature.properties.name ;
 		layer.bindPopup(popupContent);
+
 
 	}
 
@@ -167,8 +171,8 @@
 		var layer = e.target;
 
 		layer.setStyle({
-			weight: 3,
-			color:getColorAnimation(feature.properties.transit),
+			weight: 5,
+			color:color1,
 			opacity: 1
 		});
 
@@ -193,16 +197,14 @@
 			mouseout: resetHighlightEdge
 		});
     var dateFormatted = function(date){
-			return moment((date-25569)*86400*1000+4*5000000).format("YYYY-MM-DD")}
+			return moment(((date-25569)*86400*1000+4*5000000)).format("YYYY-MM-DD")}
 
 		var popupContent = "<p>" +
 				feature.properties.from + "至"+ feature.properties.to+
 				"<br>"+ feature.properties.car_number + "<br>"+ dateFormatted(feature.properties.date);
 
 		layer.bindPopup(popupContent);
-
 		}
-
 
 
 
@@ -212,35 +214,16 @@
 		// edge style
 		style:function style(feature) {
 			return {
-				opacity: 0.3,
-				color: getColor(feature.properties.transit),
+				opacity: 0.1,
+				color: color2,
 				weight:2,
 
 			};
 		},
-		onEachFeature: onEachFeatureEdges
-	}).addTo(map);
+		onEachFeature: onEachFeatureEdges,
 
-
-
-// nodes
-	nodes = L.geoJSON([nodes], {
-
-		onEachFeature: onEachFeatureNodes,
-
-		pointToLayer: function (feature, latlng) {
-			return L.circleMarker(latlng, {
-				radius:5,
-				fillColor: getColor(feature.properties.transit),
-				color: "black",
-				weight: 1,
-				opacity: 0.9,
-				fillOpacity: 0.9
-			});
-		}
 
 	}).addTo(map);
-
 
 
 //timeline
@@ -249,7 +232,7 @@ function updateList(timeline){
 				var current = document.getElementById('currentDate');
 				current.innerHTML = "<br>";
 				displayed.forEach(function(edge){
-          current.innerHTML = moment((edge.feature.properties.date-25569)*86400*1000+4*5000000).format("YYYY-MM-DD");
+          current.innerHTML = moment(((edge.feature.properties.date-25569)*86400*1000+4*5000000)).format("YYYY-MM-DD");
         });
 
         var list = document.getElementById('displayed-list');
@@ -270,26 +253,41 @@ function updateList(timeline){
 			// 18000000 = 30 minutes, so a quake of magnitude 5 would show on the
 			// map for 150 minutes or 2.5 hours
 			return {
-				start: (edge.properties.date-25569)*86400*1000+4*5000000,
-				end:  (edge.properties.date-25569)*86400*1000 + 30*3600000
+				start: ((edge.properties.date-25569)*86400*1000+4*5000000),
+				end:  ((edge.properties.date-25569)*86400*1000 + timeScale*12*4500000)
 			};
 		};
 		var timelineControl = L.timelineSliderControl({
 			formatOutput: function(date){
 				return moment(date).format("YYYY-MM-DD");
 			},
+			duration:10000*timeScale,
 			position:'bottomleft'
 		});
 		var timeline = L.timeline(data, {
 			getInterval: getInterval,
 			style:function style(feature) {
 				return {
-					opacity: 0.9,
+					opacity: 0,
 					weight: 3,
-					color: getColorAnimation(feature.properties.transit),
+					color: color3,
 						};
 			},
 			onEachFeature: onEachFeatureEdges,
+			onEachFeature: function(feature){
+			var coords = feature.geometry.coordinates;
+			var lengthOfCoords = feature.geometry.coordinates.length;
+				//reverse x, y order for L.polyline
+			 for (i=0;i<lengthOfCoords;i++)
+				 {
+				 // swap x and y, save x in var holdLon then drop back into second position
+					 holdLon = coords[i][0];
+					 coords[i][0] = coords[i][1];
+					 coords[i][1] = holdLon;
+				}
+			 var offset = L.polyline(coords, {weight: 3, color: color3, opacity: 0.5,snakingSpeed: 600/timeScale}).addTo(map).snakeIn();
+
+		 },
 			className: "newEdge"
 		});
 		timelineControl.addTo(map);
@@ -300,6 +298,24 @@ function updateList(timeline){
 		});
 		updateList(timeline);
 	}
+
+	// nodes
+		nodes = L.geoJSON([nodes], {
+
+			onEachFeature: onEachFeatureNodes,
+
+			pointToLayer: function (feature, latlng) {
+				return L.circleMarker(latlng, {
+					radius:5,
+					fillColor: color2,
+					color: "black",
+					weight: 1,
+					opacity: 0.7,
+					fillOpacity: 0.4
+				});
+			}
+
+		}).addTo(map).bringToFront();
 
 
 
