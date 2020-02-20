@@ -2,7 +2,7 @@
 <html>
 <head>
 
-	<title>武汉疫情-交通图</title>
+	<title>新冠-铁路疫情图</title>
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,7 @@
     <script src="src/leaflet.timeline.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
 		<script src="src/L.Polyline.SnakeAnim.js"></script>
+		<script src="src/L.Control.Appearance.js"></script>
 
 		<!-- Load Mapbox GL -->
 		<link rel="stylesheet" href="https://unpkg.com/mapbox-gl/dist/mapbox-gl.css"/>
@@ -30,17 +31,22 @@
 			font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial, sans-serif;
 		}
 		p {
-  		font-size: 12px;
-			margin:0 auto;
+  		font-size: 80%;
+			margin:0;
+		}
+		h1 {
+  		font-size: 150%;
+			margin:0;
 		}
 		#info{
-		width: 20%;
+
 		margin: 1%;
 	}
+
 	  #map{
 		position: fixed;
-		top: 0;
-		left: 20%;;
+		top: 10%;
+		left: 0%;
 		bottom: 0;
 		right: 0;
 		font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial, sans-serif;
@@ -56,35 +62,32 @@
 		}
 }
 
+
 	</style>
 
 
 </head>
 <body>
 
+
 <div id="info">
-		<h2>铁路车次疫情</h2>
-		<p>数据来源：掌上高铁-铁路车次疫情实时查询；人民日报微博</p>
-		<p>更新日期：2020年2月9日</p>
-		<p>移动端请横屏使用</p>
 		<h1 id="currentDate"></h1>
-		<p>当日新增</p>
+		<p>更新日期：2020年2月19日。数据来源：掌上高铁,人民日报微博。<b>移动端请横屏使用</p>
 		<ul id="displayed-list"></ul>
 </div>
-
 
 <div id='map'>
 </div>
 
-
 <script src="data.js" type="text/javascript"></script>
+<script src="daily.js" type="text/javascript"></script>
 
 <script>
 
 // color pallet
 	var color1 ="#ffb300";   //highlight
-	var color2 = "#f582ff";  //base
-	var color3 = "#ff0049";  //new
+	var color2 = "#ff6161";  //base
+	var color3 = "#a10000";  //new
 //	var color1Flight ="#a1002b";
 //	var color2Flight = "#002040";
 
@@ -103,11 +106,12 @@
 // base map
 	var map = L.map('map').setView([30, 112], 5);
 
-	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+/*	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 15,
 		 minZoom: 1,
 		attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 	}).addTo(map);
+*/
 
 /*var polygon = L.polygon([
 	    [-90, -360],
@@ -121,9 +125,8 @@
 */
 
 
-/*	L.esri.Vector.basemap('StreetsNight',{
+	L.esri.Vector.basemap('Newspaper',{
 			maxZoom: 14, minZoom: 5}).addTo(map);
-*/
 
 // nodes events
 	// highlight for nodes
@@ -157,7 +160,7 @@
 			mouseout: resetHighlight
 		});
 		var popupContent = "<p>" +
-				feature.properties.name ;
+				feature.properties.name_simple + "<br>铁路输入："+feature.properties.in + "<br>铁路输出："+feature.properties.out ;
 		layer.bindPopup(popupContent);
 
 
@@ -197,11 +200,11 @@
 			mouseout: resetHighlightEdge
 		});
     var dateFormatted = function(date){
-			return moment(((date-25569)*86400*1000+4*5000000)).format("YYYY-MM-DD")}
+			return moment(date*1000+4*5000000).format("YYYY-MM-DD")}
 
 		var popupContent = "<p>" +
-				feature.properties.from + "至"+ feature.properties.to+
-				"<br>"+ feature.properties.car_number + "<br>"+ dateFormatted(feature.properties.date);
+				feature.properties.startName + "至"+ feature.properties.arriveName+
+				"<br>"+ feature.properties.transportNo + " " + feature.properties.carriageNo + "车厢" + "<br>"+ moment(feature.properties.timestamp*1000).format("YYYY-MM-DD");
 
 		layer.bindPopup(popupContent);
 		}
@@ -226,45 +229,47 @@
 	}).addTo(map);
 
 
+
 //timeline
+
 function updateList(timeline){
+
         var displayed = timeline.getLayers();
 				var current = document.getElementById('currentDate');
 				current.innerHTML = "<br>";
 				displayed.forEach(function(edge){
-          current.innerHTML = moment(((edge.feature.properties.date-25569)*86400*1000+4*5000000)).format("YYYY-MM-DD");
+          current.innerHTML = moment((edge.feature.properties.timestamp*1000+4*5000000)).format("YYYY-MM-DD") +"   铁路车次疫情" + "";
         });
 
         var list = document.getElementById('displayed-list');
         list.innerHTML = "";
-        displayed.forEach(function(edge){
+/*        displayed.forEach(function(edge){
           var li = document.createElement('li');
 					var content = "<p>" +
-							edge.feature.properties.from + "至"+ edge.feature.properties.to + edge.feature.properties.car_number;
+							edge.feature.properties.startName + "至"+ edge.feature.properties.arriveName + edge.feature.properties.transportNo ;
           li.innerHTML = content;
           list.appendChild(li);
-        });
+        }); */
+
       }
 
-	function eqfeed_callback(data){
+	 function eqfeed_callback(data){
+		newly = L.layerGroup().addTo(map);
 		var getInterval = function(edge) {
-			// earthquake data only has a time, so we'll use that as a "start"
-			// and the "end" will be that + some value based on magnitude
-			// 18000000 = 30 minutes, so a quake of magnitude 5 would show on the
-			// map for 150 minutes or 2.5 hours
 			return {
-				start: ((edge.properties.date-25569)*86400*1000+4*5000000),
-				end:  ((edge.properties.date-25569)*86400*1000 + timeScale*12*4500000)
+				start: (edge.properties.timestamp*1000+5*3600000),
+				end:  (new Date())
 			};
 		};
 		var timelineControl = L.timelineSliderControl({
+			autoPlay:true,
 			formatOutput: function(date){
 				return moment(date).format("YYYY-MM-DD");
 			},
 			duration:10000*timeScale,
 			position:'bottomleft'
 		});
-		var timeline = L.timeline(data, {
+		  var timeline = L.timeline(data, {
 			getInterval: getInterval,
 			style:function style(feature) {
 				return {
@@ -285,19 +290,24 @@ function updateList(timeline){
 					 coords[i][0] = coords[i][1];
 					 coords[i][1] = holdLon;
 				}
-			 var offset = L.polyline(coords, {weight: 3, color: color3, opacity: 0.5,snakingSpeed: 600/timeScale}).addTo(map).snakeIn();
+			 var offset = L.polyline(coords, {weight: 1.5, color: color3, opacity: 0.3,snakingSpeed: 600/timeScale}).addTo(newly).snakeIn();
 
 		 },
 			className: "newEdge"
 		});
+
 		timelineControl.addTo(map);
 		timelineControl.addTimelines(timeline);
-		timeline.addTo(map);
+		timeline.addTo(newly);
 		timeline.on('change', function(e){
 			updateList(e.target);
 		});
 		updateList(timeline);
+
 	}
+
+
+var daily = eqfeed_callback(dailyNew)
 
 	// nodes
 		nodes = L.geoJSON([nodes], {
@@ -306,22 +316,33 @@ function updateList(timeline){
 
 			pointToLayer: function (feature, latlng) {
 				return L.circleMarker(latlng, {
-					radius:5,
+					radius: Math.sqrt(feature.properties.in)*2,
 					fillColor: color2,
 					color: "black",
-					weight: 1,
-					opacity: 0.7,
-					fillOpacity: 0.4
+					weight: Math.sqrt(feature.properties.out)/3,
+					opacity: 0.2,
+					fillOpacity: 0.8
 				});
 			}
 
 		}).addTo(map).bringToFront();
 
+		var baseLayers = {
 
+
+
+		};
+		var overlays = {
+			"疫情车站": nodes,
+			"2.19累计疫情": edges,
+			"历史新增动图":newly
+
+		};
+		L.control.layers(baseLayers, overlays,{collapsed:false}).addTo(map);
+
+   setTimeout(function(){document.getElementsByClassName('play')[0].click()},3000);
 
 </script>
-<script src="data.geojsonp"></script>
-
 
 
 
