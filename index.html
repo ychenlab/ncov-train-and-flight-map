@@ -14,7 +14,8 @@
     <script src="src/leaflet.timeline.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
 		<script src="src/L.Polyline.SnakeAnim.js"></script>
-		<script src="src/L.Control.Appearance.js"></script>
+
+		<script src="dist/leaflet.motion.min.js"></script>
 
 		<!-- Load Mapbox GL -->
 		<link rel="stylesheet" href="https://unpkg.com/mapbox-gl/dist/mapbox-gl.css"/>
@@ -31,24 +32,39 @@
 			font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial, sans-serif;
 		}
 		p {
-  		font-size: 80%;
+  		font-size: 100%;
 			margin:0;
 		}
 		h1 {
   		font-size: 150%;
 			margin:0;
+			color: #a10000;
 		}
-		#info{
+		ul {
+			position: absolute;
+		  top: 0;
+			list-style-type: none;
+	    columns: 4;
+	    -webkit-columns: 4;
+	    -moz-columns: 4;
+			padding-left: 50%;
+			color: #a10000;
+			font-size: 70%;
+}
 
-		margin: 1%;
-	}
+		#info{
+    height:15%;
+		padding: 1%;
+		overflow: auto;
+			}
 
 	  #map{
 		position: fixed;
-		top: 10%;
-		left: 0%;
+		top: 15%;
+		left:0%;
 		bottom: 0;
 		right: 0;
+
 		font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei', '微软雅黑', Arial, sans-serif;
 	}
 		.leaflet-bottom.leaflet-left{
@@ -71,10 +87,13 @@
 
 
 <div id="info">
-		<h1 id="currentDate"></h1>
-		<p>更新日期：2020年2月19日。数据来源：掌上高铁,人民日报微博。<b>移动端请横屏使用</p>
-		<ul id="displayed-list"></ul>
+	<p>数据来源：掌上高铁；人民日报微博。更新日期：2020年2月19日。</p>
+	<h1 id="currentDate"></h1>
+	<h1 id="dailyNewNum"></h1>
+	<ul id="displayed-list"></ul>
 </div>
+
+
 
 <div id='map'>
 </div>
@@ -91,7 +110,7 @@
 //	var color1Flight ="#a1002b";
 //	var color2Flight = "#002040";
 
-  var timeScale =2;
+  var timeScale =4;
 
 
 	function getColor(d) {
@@ -210,7 +229,23 @@
 		}
 
 
+		// nodes
+			nodes = L.geoJSON([nodes], {
 
+				onEachFeature: onEachFeatureNodes,
+
+				pointToLayer: function (feature, latlng) {
+					return L.circleMarker(latlng, {
+						radius: Math.sqrt(feature.properties.in)*2,
+						fillColor: color2,
+						color: "black",
+						weight: Math.sqrt(feature.properties.out)/3,
+						opacity: 0.2,
+						fillOpacity: 0.8
+					});
+				}
+
+			}).addTo(map).bringToFront();
 
 // edges
 	edges = L.geoJSON(edges, {
@@ -226,7 +261,7 @@
 		onEachFeature: onEachFeatureEdges,
 
 
-	}).addTo(map);
+	});
 
 
 
@@ -236,45 +271,54 @@ function updateList(timeline){
 
         var displayed = timeline.getLayers();
 				var current = document.getElementById('currentDate');
-				current.innerHTML = "<br>";
+				current.innerHTML = "";
 				displayed.forEach(function(edge){
-          current.innerHTML = moment((edge.feature.properties.timestamp*1000+4*5000000)).format("YYYY-MM-DD") +"   铁路车次疫情" + "";
+          current.innerHTML = moment((edge.feature.properties.timestamp*1000+4*5000000)).format("YYYY-MM-DD") ;
         });
 
         var list = document.getElementById('displayed-list');
-        list.innerHTML = "";
-/*        displayed.forEach(function(edge){
-          var li = document.createElement('li');
-					var content = "<p>" +
-							edge.feature.properties.startName + "至"+ edge.feature.properties.arriveName + edge.feature.properties.transportNo ;
-          li.innerHTML = content;
-          list.appendChild(li);
-        }); */
+				list.innerHTML = "";
+				displayed.forEach(function(edge){
+					var li = document.createElement('li');
+					var content = "<p>" + edge.feature.properties.startName + "至"+ edge.feature.properties.arriveName + edge.feature.properties.transportNo;
+					li.innerHTML = content;
+           (content == "<p>0至00") ? console.log():list.appendChild(li);;
+				});
+				console.log(document.querySelectorAll("#displayed-list li").length)
+				var dailyNewNumber = document.getElementById('dailyNewNum');
+				current.innerHTML = "";
+				displayed.forEach(function(edge){
+					current.innerHTML = "铁路车次疫情  "+moment((edge.feature.properties.timestamp*1000+4*5000000)).format("YYYY-MM-DD")+"  新增"+(document.querySelectorAll("#displayed-list li").length)+"例";
+				});
+
 
       }
+
 
 	 function eqfeed_callback(data){
 		newly = L.layerGroup().addTo(map);
 		var getInterval = function(edge) {
 			return {
 				start: (edge.properties.timestamp*1000+5*3600000),
-				end:  (new Date())
+				end:  (edge.properties.timestamp*1000+5*3600000+24*3600000)
 			};
 		};
 		var timelineControl = L.timelineSliderControl({
 			autoPlay:true,
 			formatOutput: function(date){
-				return moment(date).format("YYYY-MM-DD");
+				return moment(date).format("YYYY-MM-DD hh:mm");
 			},
 			duration:10000*timeScale,
-			position:'bottomleft'
+			position:'bottomleft',
+			enablePlayback:true,
+			enableKeyboardControls:true
 		});
 		  var timeline = L.timeline(data, {
 			getInterval: getInterval,
 			style:function style(feature) {
 				return {
-					opacity: 0,
-					weight: 3,
+					opacity: 0.5,
+					weight: 1.5,
 					color: color3,
 						};
 			},
@@ -290,10 +334,9 @@ function updateList(timeline){
 					 coords[i][0] = coords[i][1];
 					 coords[i][1] = holdLon;
 				}
-			 var offset = L.polyline(coords, {weight: 1.5, color: color3, opacity: 0.3,snakingSpeed: 600/timeScale}).addTo(newly).snakeIn();
-
-		 },
-			className: "newEdge"
+			 var offset = L.polyline(coords, {weight: 3, color: color3, opacity: 0.8,snakingSpeed: 900/timeScale}).addTo(newly).snakeIn();
+       setTimeout(function(){offset.remove()},10000/42*timeScale);
+		 }
 		});
 
 		timelineControl.addTo(map);
@@ -309,33 +352,17 @@ function updateList(timeline){
 
 var daily = eqfeed_callback(dailyNew)
 
-	// nodes
-		nodes = L.geoJSON([nodes], {
 
-			onEachFeature: onEachFeatureNodes,
-
-			pointToLayer: function (feature, latlng) {
-				return L.circleMarker(latlng, {
-					radius: Math.sqrt(feature.properties.in)*2,
-					fillColor: color2,
-					color: "black",
-					weight: Math.sqrt(feature.properties.out)/3,
-					opacity: 0.2,
-					fillOpacity: 0.8
-				});
-			}
-
-		}).addTo(map).bringToFront();
 
 		var baseLayers = {
 
-
+			"2.19累计铁路疫情": edges,
+			"历史新增动图":newly
 
 		};
 		var overlays = {
-			"疫情车站": nodes,
-			"2.19累计疫情": edges,
-			"历史新增动图":newly
+			"疫情车站": nodes
+
 
 		};
 		L.control.layers(baseLayers, overlays,{collapsed:false}).addTo(map);
