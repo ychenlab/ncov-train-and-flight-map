@@ -113,7 +113,7 @@
 // color pallet
 	var color1 ="#ffb300";   //highlight
 	var color2 = "#ff6161";  //base
-	var color3 = "#a10000";  //new
+	var color3 = "#590000";  //new
 //	var color1Flight ="#a1002b";
 //	var color2Flight = "#002040";
 
@@ -130,7 +130,7 @@
 }
 
 // base map
-	var map = L.map('map').setView([30, 112], 5);
+	var map = L.map('map').setView([30, 112], 4);
 
 /*	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 15,
@@ -174,6 +174,7 @@
 	}
 
 	var nodes;
+	var nodesOut;
 
 	function resetHighlight(e) {
 		nodes.resetStyle(e.target);
@@ -236,23 +237,41 @@
 		}
 
 
-		// nodes
+	// nodes
+
+		nodesOut = L.geoJSON([nodes], {
+
+			onEachFeature: onEachFeatureNodes,
+			pointToLayer: function (feature, latlng) {
+				return L.circleMarker(latlng, {
+					radius: Math.pow(feature.properties.out,0.5)*Math.pow(map.getZoom(),0.5)*1,
+					fillColor: color3,
+					color: color3,
+					weight: Math.pow(feature.properties.in,0.5),
+					opacity: 0,
+					fillOpacity: 0.3
+				});
+			}
+		});
+
 			nodes = L.geoJSON([nodes], {
 
 				onEachFeature: onEachFeatureNodes,
 
 				pointToLayer: function (feature, latlng) {
 					return L.circleMarker(latlng, {
-						radius: Math.sqrt(feature.properties.in)*2,
+						radius: Math.pow(feature.properties.in,0.5)*Math.pow(map.getZoom(),0.5)*1,
 						fillColor: color2,
-						color: "black",
-						weight: Math.sqrt(feature.properties.out)/3,
-						opacity: 0.2,
-						fillOpacity: 0.8
+						color: color3,
+						weight: 0.5,
+						opacity: 0.0,
+						fillOpacity: 0.5
 					});
 				}
 
 			}).addTo(map).bringToFront();
+
+
 
 // edges
 	edges = L.geoJSON(edges, {
@@ -368,7 +387,8 @@ var daily = eqfeed_callback(dailyNew)
 
 		};
 		var overlays = {
-			"疫情车站": nodes
+			"疫情车站输入": nodes,
+			"疫情车站输出": nodesOut
 
 
 		};
