@@ -114,20 +114,9 @@
 	var color1 ="#ffb300";   //highlight
 	var color2 = "#ff6161";  //base
 	var color3 = "#590000";  //new
-//	var color1Flight ="#a1002b";
-//	var color2Flight = "#002040";
-
   var timeScale =4;
 
-
-	function getColor(d) {
-    return d == "火车" ? color2 :
-                          color2;
-}
-  function getColorAnimation(d) {
-	return d == "火车" ? color1 :
-												color1;
-}
+	function getRadius(dataSource,magnifier){return Math.pow(dataSource,1)*Math.pow(map.getZoom(),0.5)*magnifier};
 
 // base map
 	var map = L.map('map').setView([30, 112], 4);
@@ -173,25 +162,69 @@
 		info.update(layer.feature.properties);
 	}
 
-	var nodes;
+	var nodesIn;
 	var nodesOut;
 
-	function resetHighlight(e) {
-		nodes.resetStyle(e.target);
-		info.update();
+	function resetHighlightNodesIn(e) {
+		nodesIn.resetStyle(e.target);
 	}
 
-	function onEachFeatureNodes(feature, layer) {
+	function resetHighlightNodesOut(e) {
+		nodesOut.resetStyle(e.target);
+	}
+
+	function resetHighlightNodesNewlyIn(e) {
+		newlyStationIn.resetStyle(e.target);
+	}
+
+	function resetHighlightNodesNewlyOut(e) {
+		newlyStationOut.resetStyle(e.target);
+	}
+
+	function onEachFeatureNodesIn(feature, layer) {
 		layer.on({
 			mouseover: highlightFeature,
-			mouseout: resetHighlight
+			mouseout: resetHighlightNodesIn
 		});
 		var popupContent = "<p>" +
-				feature.properties.name_simple + "<br>铁路输入："+feature.properties.in + "<br>铁路输出："+feature.properties.out ;
+				feature.properties.name_simple + "<br>铁路输入："+feature.properties.in;
 		layer.bindPopup(popupContent);
-
-
 	}
+
+	function onEachFeatureNodesOut(feature, layer) {
+		layer.on({
+			mouseover: highlightFeature,
+			mouseout: resetHighlightNodesOut
+		});
+		var popupContent = "<p>" +
+				feature.properties.name_simple + "<br>铁路输出："+feature.properties.out ;
+		layer.bindPopup(popupContent);
+	}
+
+
+	function onEachFeatureNodesNewlyIn(feature, layer) {
+		var popupContent = "<p>" +
+				feature.properties.station + "<br>"+ moment(feature.properties.timestamp*1000).format("MM-DD") +"前<br>累计铁路输入："+feature.properties.accumulate;
+		layer.on('mouseover', function(e) {
+					  //open popup;
+		  var popup = L.popup()
+		    .setLatLng(e.latlng) //(assuming e.latlng returns the coordinates of the event)
+		    .setContent(popupContent)
+		    .openOn(map);
+		});
+	}
+
+	function onEachFeatureNodesNewlyOut(feature, layer) {
+		var popupContent = "<p>" +
+				feature.properties.station + "<br>"+ moment(feature.properties.timestamp*1000).format("MM-DD") +"前<br>累计铁路输出："+feature.properties.accumulate;
+		layer.on('mouseover', function(e) {
+					  //open popup;
+		  var popup = L.popup()
+		    .setLatLng(e.latlng) //(assuming e.latlng returns the coordinates of the event)
+		    .setContent(popupContent)
+		    .openOn(map);
+		});
+}
 
 
 
@@ -241,10 +274,10 @@
 
 		nodesOut = L.geoJSON([nodes], {
 
-			onEachFeature: onEachFeatureNodes,
+			onEachFeature: onEachFeatureNodesOut,
 			pointToLayer: function (feature, latlng) {
 				return L.circleMarker(latlng, {
-					radius: Math.pow(feature.properties.out,0.5)*Math.pow(map.getZoom(),0.5)*1,
+					radius: getRadius(feature.properties.out,0.28),
 					fillColor: color3,
 					color: color3,
 					weight: Math.pow(feature.properties.in,0.5),
@@ -254,13 +287,13 @@
 			}
 		});
 
-			nodes = L.geoJSON([nodes], {
+			nodesIn = L.geoJSON([nodes], {
 
-				onEachFeature: onEachFeatureNodes,
+				onEachFeature: onEachFeatureNodesIn,
 
 				pointToLayer: function (feature, latlng) {
 					return L.circleMarker(latlng, {
-						radius: Math.pow(feature.properties.in,0.5)*Math.pow(map.getZoom(),0.5)*1,
+						radius: getRadius(feature.properties.in,0.28),
 						fillColor: color2,
 						color: color3,
 						weight: 0.5,
@@ -269,12 +302,12 @@
 					});
 				}
 
-			}).addTo(map).bringToFront();
+			}).bringToFront();
 
 
 
 // edges
-	edges = L.geoJSON(edges, {
+edges = L.geoJSON(edges, {
 		// edge style
 		style:function style(feature) {
 			return {
@@ -285,14 +318,9 @@
 			};
 		},
 		onEachFeature: onEachFeatureEdges,
-
-
 	});
 
-
-
 //timeline
-
 function updateList(timeline){
 
         var displayed = timeline.getLayers();
@@ -308,7 +336,7 @@ function updateList(timeline){
 					var li = document.createElement('li');
 					var content = "<p>" + edge.feature.properties.startName + "至"+ edge.feature.properties.arriveName + edge.feature.properties.transportNo;
 					li.innerHTML = content;
-           (content == "<p>0至00") ? console.log():list.appendChild(li);;
+           (content == "<p>0至00") ? console.log():list.appendChild(li);
 				});
 				console.log(document.querySelectorAll("#displayed-list li").length)
 				var dailyNewNumber = document.getElementById('dailyNewNum');
@@ -321,15 +349,15 @@ function updateList(timeline){
       }
 
 
-	 function eqfeed_callback(data){
-		newly = L.layerGroup().addTo(map);
+function eqfeed_callback(data){
+		newlyEdge = L.layerGroup().addTo(map);
 		var getInterval = function(edge) {
 			return {
 				start: (edge.properties.timestamp*1000+5*3600000),
 				end:  (edge.properties.timestamp*1000+5*3600000+24*3600000)
 			};
 		};
-		var timelineControl = L.timelineSliderControl({
+		timelineControl = L.timelineSliderControl({
 			autoPlay:true,
 			formatOutput: function(date){
 				return moment(date).format("YYYY-MM-DD hh:mm");
@@ -343,9 +371,9 @@ function updateList(timeline){
 			getInterval: getInterval,
 			style:function style(feature) {
 				return {
-					opacity: 0.5,
+					opacity: 0.8,
 					weight: 1.5,
-					color: color3,
+					color: color2,
 						};
 			},
 			onEachFeature: onEachFeatureEdges,
@@ -360,14 +388,14 @@ function updateList(timeline){
 					 coords[i][0] = coords[i][1];
 					 coords[i][1] = holdLon;
 				}
-			 var offset = L.polyline(coords, {weight: 3, color: color3, opacity: 0.8,snakingSpeed: 900/timeScale}).addTo(newly).snakeIn();
+			 var offset = L.polyline(coords, {weight: 3, color: color3, opacity: 0.8,snakingSpeed: 900/timeScale}).addTo(newlyEdge).snakeIn();
        setTimeout(function(){offset.remove()},10000/42*timeScale);
 		 }
 		});
 
 		timelineControl.addTo(map);
 		timelineControl.addTimelines(timeline);
-		timeline.addTo(newly);
+		timeline.addTo(newlyEdge);
 		timeline.on('change', function(e){
 			updateList(e.target);
 		});
@@ -375,22 +403,85 @@ function updateList(timeline){
 
 	}
 
+function timeline_circle_in(data){
+	 newlyStationIn = L.layerGroup().addTo(map);
+
+	 var getInterval = function(edge) {
+		 return {
+			 start: (edge.properties.timestamp*1000+5*3600000),
+			 end:  (edge.properties.timestamp*1000+5*3600000+24*3600000)
+		 };
+	 };
+
+	 var timeline = L.timeline(data, {
+		 filter: function(feature, latlng) {
+		 if (feature.properties.out_or_in == "in") { return true; }
+		 },
+
+		 getInterval: getInterval,
+		 onEachFeature: onEachFeatureNodesNewlyIn,
+		 pointToLayer: function (feature, latlng) {
+			 return L.circleMarker(latlng, {
+				 radius:  getRadius(feature.properties.accumulate,0.28),
+				 fillColor: color2,
+				 opacity: 0.0,
+				 fillOpacity: 0.8
+			 });
+		 }
+
+	 });
+
+	 timelineControl.addTimelines(timeline);
+	 timeline.addTo(newlyStationIn);
+}
+
+function timeline_circle_out(data){
+	newlyStationOut = L.layerGroup();
+
+	var getInterval = function(edge) {
+		return {
+			start: (edge.properties.timestamp*1000+5*3600000),
+			end:  (edge.properties.timestamp*1000+5*3600000+24*3600000)
+		};
+	};
+
+	var timeline = L.timeline(data, {
+		filter: function(feature, latlng) {
+		if (feature.properties.out_or_in == "out") { return true; }
+		},
+
+		getInterval: getInterval,
+		onEachFeature: onEachFeatureNodesNewlyOut,
+		pointToLayer: function (feature, latlng) {
+			return L.circleMarker(latlng, {
+				radius:  getRadius(feature.properties.accumulate,0.28),
+				fillColor: color3,
+				opacity: 0.0,
+				fillOpacity: 0.5
+			});
+		}
+
+	});
+
+	timelineControl.addTimelines(timeline);
+  timeline.addTo(newlyStationOut);
+}
+
 
 var daily = eqfeed_callback(dailyNew)
-
+var drawDailyStationIn = timeline_circle_in(dailyStation)
+var drawDailyStationOut = timeline_circle_out(dailyStation)
 
 
 		var baseLayers = {
-
-			"2.19累计铁路疫情": edges,
-			"历史新增动图":newly
-
 		};
 		var overlays = {
-			"疫情车站输入": nodes,
-			"疫情车站输出": nodesOut
-
-
+			"2.19累计-铁路线路疫情": edges,
+			"2.19累计-站点输入": nodesIn,
+			"2.19累计-站点输出": nodesOut,
+			"每日新增动图-铁路线路疫情":newlyEdge,
+			"每日新增动图-站点输入": newlyStationIn,
+			"每日新增动图-站点输出": newlyStationOut
 		};
 		L.control.layers(baseLayers, overlays,{collapsed:false}).addTo(map);
 
